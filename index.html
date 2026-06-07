@@ -432,12 +432,52 @@ window.switchTab=switchTab;
 window.fetchUTM=function(){
   const st=document.getElementById('utmStatus'),loc=document.getElementById('location');
   if(!navigator.geolocation){st.textContent='⚠ GPS not available — type manually.';st.style.color='var(--dn)';return;}
-  st.textContent='⏳ Fetching GPS...';st.style.color='var(--mu)';
-  const tryLoc=(hi)=>navigator.geolocation.getCurrentPosition(
-    pos=>{loc.value=toUTM(pos.coords.latitude,pos.coords.longitude);st.textContent=`✔ UTM fetched ±${Math.round(pos.coords.accuracy)}m`;st.style.color='var(--gn)';},
-    err=>{if(hi){st.textContent='⏳ Retrying...';tryLoc(false);}else{st.textContent='⚠ Could not fetch. Type manually.';st.style.color='var(--dn)';}},
-    {enableHighAccuracy:hi,timeout:hi?10000:15000,maximumAge:30000});
-  tryLoc(true);
+  st.textContent='⏳ Acquiring GPS... stay outdoors with clear sky';st.style.color='var(--mu)';
+
+  const btn=document.querySelector('button[onclick="fetchUTM()"]');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Getting...';}
+
+  let watchId=null,attempts=0;
+
+  watchId=navigator.geolocation.watchPosition(
+    pos=>{
+      attempts++;
+      const{latitude:lat,longitude:lon,accuracy}=pos.coords;
+      if(accuracy<=20){
+        // Good accuracy — accept!
+        navigator.geolocation.clearWatch(watchId);
+        loc.value=toUTM(lat,lon);
+        st.textContent=`✔ UTM fetched — Accuracy: ±${Math.round(accuracy)}m ✅`;
+        st.style.color='var(--gn)';
+        if(btn){btn.disabled=false;btn.textContent='📍 GET';}
+      } else if(accuracy<=100){
+        // Show improving progress
+        loc.value=toUTM(lat,lon)+` [±${Math.round(accuracy)}m improving...]`;
+        st.textContent=`⟳ Improving... ±${Math.round(accuracy)}m — keep waiting`;
+        st.style.color='#1d4ed8';
+      } else {
+        st.textContent=`⏳ GPS signal weak ±${Math.round(accuracy)}m — move outdoors`;
+        st.style.color='#92400e';
+      }
+      // Accept after 30 attempts regardless
+      if(attempts>=30){
+        navigator.geolocation.clearWatch(watchId);
+        loc.value=toUTM(lat,lon);
+        st.textContent=accuracy<=50?`✔ ±${Math.round(accuracy)}m (best available)`:`⚠ ±${Math.round(accuracy)}m — low accuracy, edit if needed`;
+        st.style.color=accuracy<=50?'var(--gn)':'#92400e';
+        if(btn){btn.disabled=false;btn.textContent='📍 GET';}
+      }
+    },
+    err=>{
+      navigator.geolocation.clearWatch(watchId);
+      let msg='⚠ Could not get location. Type manually.';
+      if(err.code===1)msg='⚠ Permission denied. Allow location in phone settings.';
+      if(err.code===2)msg='⚠ GPS unavailable. Go outdoors and try again.';
+      st.textContent=msg;st.style.color='var(--dn)';
+      if(btn){btn.disabled=false;btn.textContent='📍 GET';}
+    },
+    {enableHighAccuracy:true,timeout:60000,maximumAge:0}
+  );
 };
 function toUTM(lat,lon){
   const a=6378137,f=1/298.257223563,b=a*(1-f),e2=1-(b*b)/(a*a);
@@ -821,8 +861,98 @@ window.viewRec=function(i){
 };
 window.closeView=function(){document.getElementById('viewModal').classList.remove('open');};
 window.editRec=function(i){
-  currentTest=JSON.parse(JSON.stringify(tests[i]));openDM();
-  setTimeout(()=>{const b=document.querySelector('#dataModal .bs');if(b)b.onclick=async()=>{tests[i]=JSON.parse(JSON.stringify(currentTest));localStorage.setItem('ert_tests',JSON.stringify(tests));if(isOnline)await pushToFirebase(currentTest);closeModal();updateUI();renderRecords();showToast('✔ Updated!');};},100);
+  const t=tests[i];
+  // Switch to New Test tab and pre-fill all fields
+  switchTab('new');
+
+  // Fill site info
+  document.getElementById('jobNumber').value=t.jobNumber||'';
+  document.getElementById('testNumber').value=t.testNumber||'';
+  document.getElementById('pointOf').value=t.pointOf||'';
+  document.getElementById('testDate').value=t.testDate||'';
+  document.getElementById('temperature').value=t.temperature||'';
+  document.getElementById('humidity').value=t.humidity||'';
+  document.getElementById('cityName').value=t.cityName||'';
+  document.getElementById('stateName').value=t.stateName||'';
+  document.getElementById('location').value=t.location||'';
+
+  // Fill spacings
+  spacings=[...t.spacings];
+  const mc=document.getElementById('measurementCount');
+  mc.value=t.spacings.length;
+  onMeasurementCountChange();
+  // Set values after inputs are rendered
+  setTimeout(()=>{
+    t.spacings.forEach((sp,idx)=>{
+      const inp=document.getElementById('sp_'+idx);
+      if(inp) inp.value=sp;
+      spacings[idx]=parseFloat(sp);
+    });
+  },100);
+
+  // Fill directions
+  directions=[...t.directions];
+  renderDirs();
+
+  // Change START button to UPDATE
+  const startBtn=document.querySelector('button[onclick="startTest()"]');
+  if(startBtn){
+    startBtn.textContent='✏ UPDATE TEST';
+    startBtn.onclick=()=>{
+      // Validate
+      const jn=document.getElementById('jobNumber').value.trim();
+      const tn=document.getElementById('testNumber').value.trim();
+      const po=document.getElementById('pointOf').value.trim();
+      if(!jn||!tn||!po){showToast('Fill Job No, Test No & Point Id',true);return;}
+      const vs=getVS();
+      if(!vs.length){showToast('Enter at least one spacing',true);return;}
+      if(!directions.length){showToast('Add at least one direction',true);return;}
+
+      // Update existing test — keep old readings, update info
+      const updated={...t,
+        jobNumber:jn,testNumber:tn,pointOf:po,
+        testDate:document.getElementById('testDate').value,
+        temperature:document.getElementById('temperature').value,
+        humidity:document.getElementById('humidity').value,
+        cityName:document.getElementById('cityName').value.trim(),
+        stateName:document.getElementById('stateName').value.trim(),
+        location:document.getElementById('location').value.trim(),
+        spacings:vs,directions:[...directions]
+      };
+
+      // Rebuild readings preserving existing values
+      const newReadings={};
+      directions.forEach(dir=>{
+        newReadings[dir]={};
+        vs.forEach(sp=>{
+          newReadings[dir][sp]=(t.readings[dir]&&t.readings[dir][sp]!==undefined)?t.readings[dir][sp]:'';
+        });
+      });
+      updated.readings=newReadings;
+
+      // Set as currentTest and open data entry
+      currentTest=updated;
+      openDM();
+
+      // Override save button
+      setTimeout(()=>{
+        const saveBtn=document.querySelector('#dataModal .bs');
+        if(saveBtn) saveBtn.onclick=async()=>{
+          tests[i]=JSON.parse(JSON.stringify(currentTest));
+          localStorage.setItem('ert_tests',JSON.stringify(tests));
+          if(isOnline) await pushToFirebase(currentTest);
+          closeModal();updateUI();
+          // Reset start button
+          startBtn.textContent='⚡ START DATA ENTRY';
+          startBtn.onclick=startTest;
+          switchTab('records');
+          renderRecords();
+          showToast('✔ Test updated!');
+        };
+      },100);
+    };
+  }
+  showToast('Edit mode — modify fields then tap Update Test');
 };
 window.delRec=function(i){
   if(confirm(`Delete "${tests[i].testNumber}"`)){const id=tests[i].id;tests.splice(i,1);pending=pending.filter(p=>p.id!==id);localStorage.setItem('ert_tests',JSON.stringify(tests));localStorage.setItem('ert_pending',JSON.stringify(pending));updateUI();renderRecords();showToast('Deleted');}

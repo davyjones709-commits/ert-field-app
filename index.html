@@ -1705,8 +1705,8 @@ window.exportSelectedPDF=function(){
     doc.setPage(p);
     doc.setFillColor(240,242,255);doc.rect(0,290,210,7,'F');
     doc.setTextColor(100,100,150);doc.setFont('helvetica','normal');doc.setFontSize(7);
-    doc.text('Shreenath Laboratories & Consultants Pvt. Ltd. | ERT Field Report | Confidential',14,295);
-    doc.text(`Page ${p} of ${pageCount}`,196,295,{align:'right'});
+    doc.text('Shreenath Laboratories & Consultants Pvt. Ltd.',14,295);
+    doc.text(`v1.0  |  01.06.2026  |  Page ${p} of ${pageCount}`,196,295,{align:'right'});
   }
   doc.save(`ERT_Batch_${new Date().toISOString().split('T')[0]}.pdf`);
   showToast(`✔ PDF with ${selectedTests.length} tests saved!`);
@@ -1723,8 +1723,8 @@ window.exportPDF=function(i){
     doc.setPage(p);
     doc.setFillColor(240,242,255);doc.rect(0,290,210,7,'F');
     doc.setTextColor(100,100,150);doc.setFont('helvetica','normal');doc.setFontSize(7);
-    doc.text('Shreenath Laboratories & Consultants Pvt. Ltd. | ERT Field Report',14,295);
-    doc.text(`Page ${p} of ${pageCount}`,196,295,{align:'right'});
+    doc.text('Shreenath Laboratories & Consultants Pvt. Ltd.',14,295);
+    doc.text(`v1.0  |  01.06.2026  |  Page ${p} of ${pageCount}`,196,295,{align:'right'});
   }
   const fname=`ERT_${(t.jobNumber||'JOB').replace(/[^a-zA-Z0-9]/g,'_')}_${(t.pointOf||'PT').replace(/[^a-zA-Z0-9]/g,'_')}_${t.testDate||'2026'}.pdf`;
   doc.save(fname);
@@ -1732,13 +1732,25 @@ window.exportPDF=function(i){
 };
 
 function buildPDFPage(doc,t){
-  const pw=210,mg=14;let y=mg;
-  doc.setFillColor(26,86,219);doc.rect(0,0,pw,22,'F');
+  const pw=210,mg=14;
+  const PDF_VERSION='v1.0';
+  const PDF_VERSION_DATE='01.06.2026';
+  let y=mg;
+  // ── Header bar ──
+  doc.setFillColor(26,86,219);doc.rect(0,0,pw,24,'F');
+  // Company name — centre
   doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(13);
   doc.text('Shreenath Laboratories & Consultants Pvt. Ltd.',pw/2,9,{align:'center'});
-  doc.setFont('helvetica','normal');doc.setFontSize(8);
-  doc.text('ELECTRICAL RESISTIVITY TEST OF EARTH — FIELD DATA REPORT',pw/2,15,{align:'center'});
-  y=28;
+  // "Field Observations" subtitle — centre
+  doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(200,210,255);
+  doc.text('ELECTRICAL RESISTIVITY TEST OF EARTH  |  Field Observations',pw/2,16,{align:'center'});
+  // Version box — top right corner
+  doc.setFillColor(255,255,255,0.15);
+  doc.setDrawColor(255,255,255);doc.setLineWidth(0.3);
+  doc.roundedRect(pw-52,3,48,8,2,2,'S');
+  doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(255,255,255);
+  doc.text(`${PDF_VERSION}  |  ${PDF_VERSION_DATE}`,pw-28,8,{align:'center'});
+  y=30;
   const boxH=60;
   doc.setFillColor(245,247,255);doc.rect(mg,y,pw-mg*2,boxH,'F');
   doc.setDrawColor(180,200,240);doc.setLineWidth(0.3);doc.rect(mg,y,pw-mg*2,boxH,'S');

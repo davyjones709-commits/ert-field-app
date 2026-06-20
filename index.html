@@ -1703,8 +1703,8 @@ window.exportSelectedPDF=function(){
   const pageCount=doc.getNumberOfPages();
   for(let p=1;p<=pageCount;p++){
     doc.setPage(p);
-    doc.setFillColor(240,242,255);doc.rect(0,290,210,7,'F');
-    doc.setTextColor(100,100,150);doc.setFont('helvetica','normal');doc.setFontSize(7);
+    doc.setFillColor(240,245,250);doc.rect(0,290,210,7,'F');
+    doc.setTextColor(100,120,140);doc.setFont('helvetica','normal');doc.setFontSize(7);
     doc.text('Shreenath Laboratories & Consultants Pvt. Ltd.',14,295);
     doc.text(`v1.0  |  01.06.2026  |  Page ${p} of ${pageCount}`,196,295,{align:'right'});
   }
@@ -1721,8 +1721,8 @@ window.exportPDF=function(i){
   const pageCount=doc.getNumberOfPages();
   for(let p=1;p<=pageCount;p++){
     doc.setPage(p);
-    doc.setFillColor(240,242,255);doc.rect(0,290,210,7,'F');
-    doc.setTextColor(100,100,150);doc.setFont('helvetica','normal');doc.setFontSize(7);
+    doc.setFillColor(240,245,250);doc.rect(0,290,210,7,'F');
+    doc.setTextColor(100,120,140);doc.setFont('helvetica','normal');doc.setFontSize(7);
     doc.text('Shreenath Laboratories & Consultants Pvt. Ltd.',14,295);
     doc.text(`v1.0  |  01.06.2026  |  Page ${p} of ${pageCount}`,196,295,{align:'right'});
   }
@@ -1735,30 +1735,61 @@ function buildPDFPage(doc,t){
   const pw=210,mg=14;
   const PDF_VERSION='v1.0';
   const PDF_VERSION_DATE='01.06.2026';
+
+  // ── Color palette — print-friendly, low ink ──
+  const C={
+    headerBg:  [58,110,165],      // steel blue — readable but not ink-heavy
+    headerText:[255,255,255],
+    headerSub: [195,220,240],     // light blue for subtitle
+    infoBg:    [247,250,253],     // almost white info box
+    infoBorder:[190,210,225],
+    dividerLine:[190,210,225],
+    locBg:     [240,247,252],     // location row
+    tblHeader: [210,228,242],     // light blue-grey — prints light, no ink waste
+    tblHeaderText:[30,65,100],    // dark navy text on light header
+    tblRowAlt: [245,249,253],     // barely-there alternate rows
+    tblBorder: [200,215,228],
+    labelCol:  [45,85,130],       // dark blue labels
+    textDark:  [20,20,20],
+    legendBg:  [245,250,248],
+    legendBdr: [190,215,205],
+    footerBg:  [240,245,250],
+    footerText:[100,120,140],
+    remarksTxt:[60,60,60],
+    sigTesterBg: [238,246,255],
+    sigTesterBdr:[180,210,235],
+    sigWitnessBg:[235,250,242],
+    sigWitnessBdr:[170,220,200],
+  };
+
   let y=mg;
-  // ── Header bar ──
-  doc.setFillColor(26,86,219);doc.rect(0,0,pw,24,'F');
-  // Company name — centre
-  doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(13);
+
+  // ── Header ──
+  doc.setFillColor(...C.headerBg);
+  doc.rect(0,0,pw,22,'F');
+  doc.setTextColor(...C.headerText);
+  doc.setFont('helvetica','bold');
+  doc.setFontSize(13);
   doc.text('Shreenath Laboratories & Consultants Pvt. Ltd.',pw/2,9,{align:'center'});
-  // "Field Observations" subtitle — centre
-  doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(200,210,255);
+  doc.setFont('helvetica','normal');
+  doc.setFontSize(8);
+  doc.setTextColor(...C.headerSub);
   doc.text('ELECTRICAL RESISTIVITY TEST OF EARTH  |  Field Observations',pw/2,16,{align:'center'});
-  // Version box — top right corner
-  doc.setFillColor(255,255,255,0.15);
-  doc.setDrawColor(255,255,255);doc.setLineWidth(0.3);
-  doc.roundedRect(pw-52,3,48,8,2,2,'S');
-  doc.setFont('helvetica','bold');doc.setFontSize(6.5);doc.setTextColor(255,255,255);
-  doc.text(`${PDF_VERSION}  |  ${PDF_VERSION_DATE}`,pw-28,8,{align:'center'});
-  y=30;
+  y=28;
+
+  // ── Info box ──
   const boxH=60;
-  doc.setFillColor(245,247,255);doc.rect(mg,y,pw-mg*2,boxH,'F');
-  doc.setDrawColor(180,200,240);doc.setLineWidth(0.3);doc.rect(mg,y,pw-mg*2,boxH,'S');
+  doc.setFillColor(...C.infoBg);
+  doc.rect(mg,y,pw-mg*2,boxH,'F');
+  doc.setDrawColor(...C.infoBorder);
+  doc.setLineWidth(0.3);
+  doc.rect(mg,y,pw-mg*2,boxH,'S');
+  doc.setDrawColor(...C.dividerLine);
   doc.line(pw/2,y,pw/2,y+boxH);
   const lx=mg+4,rx=pw/2+4,lv=mg+38,rv=pw/2+38;
   let ly=y+8,ry=y+8;
-  const lbl=(x,yy,txt)=>{doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(80,80,180);doc.text(txt,x,yy);};
-  const val=(x,yy,txt)=>{doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(20,20,20);doc.text(String(txt||'—'),x,yy);};
+  const lbl=(x,yy,txt)=>{doc.setFont('helvetica','bold');doc.setFontSize(8);doc.setTextColor(...C.labelCol);doc.text(txt,x,yy);};
+  const val=(x,yy,txt)=>{doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...C.textDark);doc.text(String(txt||'—'),x,yy);};
   lbl(lx,ly,'Job Number:');val(lv,ly,t.jobNumber);ly+=7;
   lbl(lx,ly,'Point ID:');val(lv,ly,t.pointOf);ly+=7;
   lbl(lx,ly,'Temperature:');val(lv,ly,t.temperature?t.temperature+'°C':'—');ly+=7;
@@ -1771,31 +1802,48 @@ function buildPDFPage(doc,t){
   lbl(rx,ry,'State:');val(rv,ry,t.stateName||'—');ry+=7;
   lbl(rx,ry,'Tested By:');val(rv,ry,t.testedBy||'—');ry+=7;
   if(t.createdAt){lbl(rx,ry,'Time:');val(rv,ry,new Date(t.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true}));}
+
+  // ── Location row ──
   y+=boxH+3;
-  doc.setFillColor(235,240,255);doc.rect(mg,y,pw-mg*2,8,'F');
-  doc.setDrawColor(180,200,240);doc.rect(mg,y,pw-mg*2,8,'S');
+  doc.setFillColor(...C.locBg);
+  doc.rect(mg,y,pw-mg*2,8,'F');
+  doc.setDrawColor(...C.infoBorder);
+  doc.rect(mg,y,pw-mg*2,8,'S');
   lbl(mg+4,y+5.5,'Location (UTM):');
-  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(20,20,20);
+  doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...C.textDark);
   doc.text(String(t.location||'—'),mg+38,y+5.5);
+
+  // ── Resistance table title ──
   y+=12;
   doc.setFont('helvetica','bolditalic');doc.setFontSize(8);doc.setTextColor(80,80,80);
   doc.text('Resistance of Soil (Ohm) at Specified Distances Between Electrodes (m)',pw/2,y,{align:'center'});
   y+=5;
+
+  // ── Table header row — light, print friendly ──
   const tSpacings=t.spacings||[];
   const dirs=t.directions||[];
   const dirColW=40;
   const dataColW=(pw-mg*2-dirColW)/Math.max(tSpacings.length,1);
   const rowH=7;
-  doc.setFillColor(26,86,219);doc.rect(mg,y,pw-mg*2,rowH,'F');
-  doc.setTextColor(255,255,255);doc.setFont('helvetica','bold');doc.setFontSize(8);
+  doc.setFillColor(...C.tblHeader);
+  doc.rect(mg,y,pw-mg*2,rowH,'F');
+  doc.setDrawColor(...C.tblBorder);
+  doc.rect(mg,y,pw-mg*2,rowH,'S');
+  doc.setTextColor(...C.tblHeaderText);
+  doc.setFont('helvetica','bold');doc.setFontSize(8);
   doc.text('Direction',mg+2,y+4.8);
   tSpacings.forEach((sp,j)=>{doc.text(`${sp} m`,mg+dirColW+j*dataColW+dataColW/2,y+4.8,{align:'center'});});
   y+=rowH;
+
+  // ── Data rows ──
   dirs.forEach((dir,ri)=>{
     if(y+rowH>282){doc.addPage();y=20;}
-    doc.setFillColor(...(ri%2===0?[242,246,255]:[255,255,255]));doc.rect(mg,y,pw-mg*2,rowH,'F');
-    doc.setDrawColor(210,220,240);doc.rect(mg,y,pw-mg*2,rowH,'S');
-    doc.setTextColor(30,30,30);doc.setFont('helvetica','bold');doc.setFontSize(8);
+    doc.setFillColor(...(ri%2===0?C.tblRowAlt:[255,255,255]));
+    doc.rect(mg,y,pw-mg*2,rowH,'F');
+    doc.setDrawColor(...C.tblBorder);
+    doc.rect(mg,y,pw-mg*2,rowH,'S');
+    doc.setTextColor(...C.textDark);
+    doc.setFont('helvetica','bold');doc.setFontSize(8);
     doc.text(dir,mg+2,y+4.8);
     doc.setFont('helvetica','normal');
     tSpacings.forEach((sp,j)=>{
@@ -1806,33 +1854,38 @@ function buildPDFPage(doc,t){
     });
     y+=rowH;
   });
-  // Legend for special values
+
+  // ── Legend ──
   const allVals=Object.values(t.readings||{}).flatMap(d=>Object.values(d));
   const usedOL=allVals.includes('OL'),usedBR=allVals.includes('BR'),usedGR=allVals.includes('GR');
   if(usedOL||usedBR||usedGR){
     y+=3;
-    doc.setFillColor(248,250,255);doc.rect(mg,y,pw-mg*2,8,'F');
-    doc.setDrawColor(200,210,230);doc.rect(mg,y,pw-mg*2,8,'S');
+    doc.setFillColor(...C.legendBg);doc.rect(mg,y,pw-mg*2,8,'F');
+    doc.setDrawColor(...C.legendBdr);doc.rect(mg,y,pw-mg*2,8,'S');
     doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(100,100,120);
     doc.text('Legend:',mg+2,y+5);
-    let lx=mg+22;
-    if(usedOL){doc.setTextColor(180,0,0);doc.setFont('helvetica','bold');doc.text('OL',lx,y+5);doc.setFont('helvetica','normal');doc.text(' = Overload',lx+5,y+5);lx+=38;}
-    if(usedBR){doc.setTextColor(180,100,0);doc.setFont('helvetica','bold');doc.text('BR',lx,y+5);doc.setFont('helvetica','normal');doc.text(' = Boundary Restriction',lx+5,y+5);lx+=65;}
-    if(usedGR){doc.setTextColor(0,120,80);doc.setFont('helvetica','bold');doc.text('GR',lx,y+5);doc.setFont('helvetica','normal');doc.text(' = Ground Restriction',lx+5,y+5);}
+    let lxL=mg+22;
+    if(usedOL){doc.setTextColor(180,0,0);doc.setFont('helvetica','bold');doc.text('OL',lxL,y+5);doc.setFont('helvetica','normal');doc.text(' = Overload',lxL+5,y+5);lxL+=38;}
+    if(usedBR){doc.setTextColor(180,100,0);doc.setFont('helvetica','bold');doc.text('BR',lxL,y+5);doc.setFont('helvetica','normal');doc.text(' = Boundary Restriction',lxL+5,y+5);lxL+=65;}
+    if(usedGR){doc.setTextColor(0,120,80);doc.setFont('helvetica','bold');doc.text('GR',lxL,y+5);doc.setFont('helvetica','normal');doc.text(' = Ground Restriction',lxL+5,y+5);}
     y+=10;
   }
+
+  // ── Remarks ──
   y+=3;
   if(t.remarks){
     if(y+15>280){doc.addPage();y=20;}
-    doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(80,0,160);
+    doc.setFont('helvetica','bold');doc.setFontSize(8.5);doc.setTextColor(...C.labelCol);
     doc.text('Remarks / Observations',mg,y);y+=5;
-    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(30,30,30);
+    doc.setFont('helvetica','normal');doc.setFontSize(8);doc.setTextColor(...C.remarksTxt);
     const rl=doc.splitTextToSize(t.remarks,pw-mg*2);
     doc.text(rl,mg,y);y+=rl.length*4.5+4;
   }
+
+  // ── Signatures ──
   if(t.testedBy||t.signature||t.witnessSig){
     if(y+38>280){doc.addPage();y=20;}
-    doc.setDrawColor(200,200,200);doc.line(mg,y,pw-mg,y);y+=6;
+    doc.setDrawColor(...C.tblBorder);doc.line(mg,y,pw-mg,y);y+=6;
     const midX=pw/2+2;
     const addSig=(src,x,sy,w,h)=>{
       if(!src||src.length<10)return;
@@ -1842,17 +1895,17 @@ function buildPDFPage(doc,t){
       }catch(e){console.log('sig error',e);}
     };
     // Tester box
-    doc.setFillColor(238,242,255);doc.rect(mg,y,pw/2-mg-2,32,'F');
-    doc.setDrawColor(199,210,254);doc.rect(mg,y,pw/2-mg-2,32,'S');
-    doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(67,56,202);
+    doc.setFillColor(...C.sigTesterBg);doc.rect(mg,y,pw/2-mg-2,32,'F');
+    doc.setDrawColor(...C.sigTesterBdr);doc.rect(mg,y,pw/2-mg-2,32,'S');
+    doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(...C.labelCol);
     doc.text('TESTED BY',mg+2,y+5);
     doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(30,27,75);
     doc.text(String(t.testedBy||'—'),mg+2,y+12);
     if(t.signature) addSig(t.signature,mg+2,y+15,42,15);
     // Witness box
     if(t.witnessed==='Yes'){
-      doc.setFillColor(209,250,229);doc.rect(midX,y,pw/2-mg-2,32,'F');
-      doc.setDrawColor(110,231,183);doc.rect(midX,y,pw/2-mg-2,32,'S');
+      doc.setFillColor(...C.sigWitnessBg);doc.rect(midX,y,pw/2-mg-2,32,'F');
+      doc.setDrawColor(...C.sigWitnessBdr);doc.rect(midX,y,pw/2-mg-2,32,'S');
       doc.setFont('helvetica','bold');doc.setFontSize(7);doc.setTextColor(6,95,70);
       doc.text('WITNESSED BY',midX+2,y+5);
       doc.setFont('helvetica','normal');doc.setFontSize(9);doc.setTextColor(6,78,59);

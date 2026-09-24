@@ -302,6 +302,15 @@ input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;}
 <div class="toast" id="toast"></div>
 
 <script>
+// ─── DATE FORMAT dd/mm/yyyy (display only — stored value unchanged) ───────────
+window.fmtDate=function(v){
+  if(!v) return '';
+  const s=String(v);
+  const m=s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if(m) return m[3]+'/'+m[2]+'/'+m[1];
+  const d=new Date(v); if(isNaN(d)) return s;
+  return String(d.getDate()).padStart(2,'0')+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+d.getFullYear();
+};
 let db, auth;
 
 // Global state — accessible by all functions
@@ -377,6 +386,17 @@ function startAuth() {
             u.readings=fixed;
           }
           
+          // Append directions added from dashboard (never removes/reorders existing ones)
+          // and make sure every direction has a readings object so View never breaks
+          const mergeDirections=(rec)=>{
+            if(Array.isArray(u.directions)){
+              rec.directions=rec.directions||[];
+              u.directions.forEach(d=>{if(!rec.directions.includes(d))rec.directions.push(d);});
+            }
+            rec.readings=rec.readings||{};
+            (rec.directions||[]).forEach(d=>{if(!rec.readings[d])rec.readings[d]={};});
+          };
+          
           // Find test in synced or pending
           const idx=tests.findIndex(t=>String(t.id)===String(cmd.testId));
           const pidx=pending.findIndex(p=>String(p.id)===String(cmd.testId));
@@ -397,6 +417,7 @@ function startAuth() {
                 tests[idx][key]=val;
               }
             });
+            mergeDirections(tests[idx]);
             localStorage.setItem('ert_tests',JSON.stringify(tests));
           }
           
@@ -412,6 +433,7 @@ function startAuth() {
                 pending[pidx][key]=val;
               }
             });
+            mergeDirections(pending[pidx]);
             localStorage.setItem('ert_pending',JSON.stringify(pending));
           }
           
@@ -781,7 +803,7 @@ function openDM(){
     <div class="mc"><span>JOB</span>${currentTest.jobNumber}</div>
     <div class="mc"><span>TEST</span>${currentTest.testNumber}</div>
     <div class="mc"><span>POINT</span>${currentTest.pointOf}</div>
-    <div class="mc"><span>DATE</span>${currentTest.testDate}</div>
+    <div class="mc"><span>DATE</span>${fmtDate(currentTest.testDate)}</div>
     ${currentTest.witnessed==='Yes'?`<div class="mc" style="background:rgba(16,185,129,0.3);border-color:rgba(110,231,183,0.5);"><span>WITNESS</span>${currentTest.witnessName}</div>`:''}
   `;
   renderMC();
@@ -1307,7 +1329,7 @@ function renderRecords(){
       <input type="checkbox" class="rec-chk" data-idx="${i}" style="margin-top:4px;width:18px;height:18px;accent-color:var(--ac);flex-shrink:0;" onchange="updateSelCount()" onclick="event.stopPropagation()">
       <div style="flex:1;">
         <div class="rt">${t.jobNumber} — ${t.testNumber}</div>
-        <div class="rm"><span>📍${t.pointOf}</span><span>📅${t.testDate}</span>${t.createdAt?`<span>🕐${new Date(t.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</span>`:''}<span>🧭${t.directions.length}d</span><span>📏${t.spacings.length}s</span>${st}</div>
+        <div class="rm"><span>📍${t.pointOf}</span><span>📅${fmtDate(t.testDate)}</span>${t.createdAt?`<span>🕐${new Date(t.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true})}</span>`:''}<span>🧭${t.directions.length}d</span><span>📏${t.spacings.length}s</span>${st}</div>
         <div class="ra"><button class="btn bo bsm" onclick="event.stopPropagation();viewRec(${i})">👁 VIEW</button><button class="btn bo bsm" onclick="event.stopPropagation();editRec(${i})">✏ EDIT</button><button class="btn bo bsm" style="color:#7c3aed;border-color:#c4b5fd;" onclick="event.stopPropagation();exportPDF(${i})">📄 PDF</button><button class="btn bd2 bsm" onclick="event.stopPropagation();delRec(${i})">🗑 DEL</button></div>
       </div>
     </div>
@@ -1353,10 +1375,10 @@ function renderRecords(){
 window.viewRec=function(i){
   const t=tests[i];
   let h=`<div class="fr"><div class="fg"><label>Job No</label><div class="ib">${t.jobNumber}</div></div><div class="fg"><label>Test No</label><div class="ib">${t.testNumber}</div></div></div>
-  <div class="fr"><div class="fg"><label>Point Id</label><div class="ib">${t.pointOf}</div></div><div class="fg"><label>Date</label><div class="ib">${t.testDate}</div></div></div>
+  <div class="fr"><div class="fg"><label>Point Id</label><div class="ib">${t.pointOf}</div></div><div class="fg"><label>Date</label><div class="ib">${fmtDate(t.testDate)}</div></div></div>
   <div class="fr"><div class="fg"><label>Temp</label><div class="ib">${t.temperature||'-'}°C</div></div><div class="fg"><label>Humidity</label><div class="ib">${t.humidity||'-'}%</div></div></div>
   <div class="fr"><div class="fg"><label>City/Village</label><div class="ib">${t.cityName||'-'}</div></div><div class="fg"><label>State</label><div class="ib">${t.stateName||'-'}</div></div></div>
-  ${t.createdAt?`<div class="fg"><label>Test Time</label><div class="ib" style="font-family:'Share Tech Mono',monospace;font-size:12px;">${new Date(t.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true})} on ${new Date(t.createdAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</div></div>`:''}
+  ${t.createdAt?`<div class="fg"><label>Test Time</label><div class="ib" style="font-family:'Share Tech Mono',monospace;font-size:12px;">${new Date(t.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:true})} on ${fmtDate(t.createdAt)}</div></div>`:''}
   ${t.testedBy?`<div class="fg"><label>Tested By</label><div class="ib">${t.testedBy}</div></div>`:''}
   ${t.witnessed==='Yes'?`<div style="background:#d1fae5;border:1.5px solid #6ee7b7;border-radius:8px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:10px;">
     <span style="font-size:18px;">👤</span>
@@ -1797,7 +1819,7 @@ function buildPDFPage(doc,t){
   lbl(lx,ly,'Witnessed:');val(lv,ly,t.witnessed||'No');ly+=7;
   lbl(lx,ly,'Representative:');val(lv,ly,t.witnessName||'—');
   lbl(rx,ry,'Test Number:');val(rv,ry,t.testNumber);ry+=7;
-  lbl(rx,ry,'Date:');val(rv,ry,t.testDate);ry+=7;
+  lbl(rx,ry,'Date:');val(rv,ry,fmtDate(t.testDate));ry+=7;
   lbl(rx,ry,'Humidity:');val(rv,ry,t.humidity?t.humidity+'%':'—');ry+=7;
   lbl(rx,ry,'State:');val(rv,ry,t.stateName||'—');ry+=7;
   lbl(rx,ry,'Tested By:');val(rv,ry,t.testedBy||'—');ry+=7;
